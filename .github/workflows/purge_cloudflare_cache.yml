@@ -1,0 +1,16 @@
+name: Cloudflareのキャッシュをクリア
+
+on:
+  push: [nomu_production]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Cloudflare API を呼び出してキャッシュクリア
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type:application/json" \
+            -d '{"purge_everything":true}' \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache"
