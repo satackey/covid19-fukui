@@ -131,7 +131,7 @@
               </button>
 
               <button
-                :aria-label="$t('facebookで{title}のグラフをシェア', { title })"
+                :aria-label="$t('Facebookで{title}のグラフをシェア', { title })"
                 @click="facebook"
               >
                 <picture>
