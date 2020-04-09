@@ -7,7 +7,9 @@
       :chart-option="{}"
       :date="Patients.date"
       :info="sumInfoOfPatients"
-      :url="'https://www.pref.fukui.lg.jp/doc/toukei-jouhou/covid-19.html'"
+      :url="
+        'https://www.pref.fukui.lg.jp/doc/kenkou/kansensyo-yobousessyu/corona.html'
+      "
     />
   </v-col>
 </template>
@@ -38,10 +40,10 @@ export default {
     // console.log(sumInfoOfPatients)
 
     // 陽性患者の属性 ヘッダー翻訳
-    // for (const header of patientsTable.headers) {
-    //   header.text =
-    //     header.value === '退院' ? this.$t('退院※') : this.$t(header.value)
-    // }
+    for (const header of patientsTable.headers) {
+      header.text =
+        header.value === '退院' ? this.$t('退院※') : this.$t(header.value)
+    }
     // 陽性患者の属性 中身の翻訳
     for (const row of patientsTable.datasets) {
       row['居住地'] = this.$t(row['居住地'])
@@ -62,6 +64,18 @@ export default {
       sumInfoOfPatients
     }
     return data
+  },
+  methods: {
+    getTranslatedWording(value) {
+      if (value === '-' || value === '‐' || value == null) {
+        // 翻訳しようとしている文字列が以下のいずれかだった場合、翻訳しない
+        // - 全角のハイフン
+        // - 半角のハイフン
+        // - null
+        return value
+      }
+      return this.$t(value)
+    }
   }
 }
 </script>

@@ -5,9 +5,9 @@
         mdi-information
       </v-icon>
       {{ $t('速報') }}
-      <a class="BreakingNews-heading-link" :href="this.localePath('/news')"
-        >過去のお知らせはこちら</a
-      >
+      <a class="BreakingNews-heading-link" :href="this.localePath('/news')">{{
+        $t('過去のお知らせはこちら')
+      }}</a>
     </h2>
     <ul class="BreakingNews-list">
       <h3 class="breaking-content" />

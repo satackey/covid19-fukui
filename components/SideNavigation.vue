@@ -34,11 +34,16 @@
       </v-icon>
 
       <nav class="SideNavigation-Menu">
-        <MenuList :items="items" @click="$emit('closeNavi', $event)" />
         <div
           v-if="this.$i18n.locales.length > 1"
           class="SideNavigation-Language"
-        />
+        >
+          <label class="SideNavigation-LanguageLabel" for="LanguageSelector">
+            {{ $t('多言語対応選択メニュー') }}
+          </label>
+          <LanguageSelector />
+        </div>
+        <MenuList :items="items" @click="$emit('closeNavi', $event)" />
       </nav>
 
       <footer class="SideNavigation-Footer">
@@ -86,9 +91,14 @@
         </picture>
         <small class="SideNavigation-Copyright-license">
           Content on This Site is Licensed Under a
-          <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by/4.0/">
-          Creative Commons Attribution 4.0 International License </a>provided under<br/>
-          2020 Tokyo Metropolitan Government<br/>
+          <a
+            rel="license"
+            target="_blank"
+            href="http://creativecommons.org/licenses/by/4.0/"
+          >
+            Creative Commons Attribution 4.0 International License </a
+          >provided under<br />
+          2020 Tokyo Metropolitan Government<br />
           © 2020 covid19-fukui.com
         </small>
       </footer>
@@ -99,7 +109,7 @@
 <script lang="ts">
 import Vue from 'vue'
 import { TranslateResult } from 'vue-i18n'
-// import LanguageSelector from '@/components/LanguageSelector.vue'
+import LanguageSelector from '@/components/LanguageSelector.vue'
 import MenuList from '@/components/MenuList.vue'
 
 type Item = {
@@ -111,7 +121,7 @@ type Item = {
 
 export default Vue.extend({
   components: {
-    // LanguageSelector,
+    LanguageSelector,
     MenuList
   },
   props: {
