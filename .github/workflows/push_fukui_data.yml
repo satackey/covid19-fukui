@@ -14,16 +14,46 @@ jobs:
         id: metadatas
         uses: actions/github-script@0.9.0
         with:
-          update-push-branch: ${{ secrets.SCHEDULED_UPDATE_PUSH_BRANCH }}
+          secondary-base-branch: ${{ secrets.SECONDARY_BASE_BRANCH }}
+          secondary-alt-base-branches: ${{ secrets.SECONDARY_ALT_BASE_BRANCHES }}
           script: |
             console.log(context)
 
-            const baseBranch = context.payload.client_payload != null && typeof context.payload.client_payload.base_branch === 'string' && context.payload.client_payload.base_branch.length > 1
-              ? context.payload.client_payload.base_branch : core.getInput('update-push-branch') || context.payload.repository.default_branch.replace('refs/heads/', '')
+            const defaultBaseBranch = context.payload.repository.default_branch.replace('refs/heads/', '')
 
-            core.setOutput('head-branch', 'update_data/updatejson')
+            const clientPayloadHasBaseBranch = context.payload.client_payload != null && typeof context.payload.client_payload.base_branch === 'string' && context.payload.client_payload.base_branch.length > 1
+            const inputHasBaseBranch = core.getInput('secondary-base-branch') !== ''
+
+            let baseBranch = ''
+            let altBaseBranches = []
+            if (clientPayloadHasBaseBranch) {
+              baseBranch = context.payload.client_payload.base_branch
+
+              if (Array.isArray(context.payload.client_payload.alt_base_braches)) {
+                altBaseBranches.push(...context.payload.client_payload.alt_base_braches.filter(branch => branch !== ''))
+              }
+            } else if (inputHasBaseBranch) {
+              baseBranch = core.getInput('secondary-base-branch')
+              altBaseBranches = core.getInput('secondary-alt-base-branches').split(' ').filter(branch => branch !== '')
+            } else {
+              baseBranch = defaultBaseBranch
+            }
+
+            const headBranch = `update_data/updatejson_for/${baseBranch}`
+
+            core.setOutput('head-branch', headBranch)
             core.setOutput('base-branch', baseBranch)
+            core.setOutput('alt-base-branches', JSON.stringify(altBaseBranches))
             core.setOutput('current-date', (new Date).toString())
+
+            // 重複するPRを取得
+            const duplicatePullNumbers = (await github.pulls.list({
+              owner: context.payload.repository.owner.login,
+              repo: context.payload.repository.name,
+              head: headBranch,
+              status: 'open',
+            })).data.map(pull => pull.number)
+            core.setOutput('duplicate-pulls', JSON.stringify(duplicatePullNumbers))
 
       - name: Gitを設定
         run: |
@@ -65,11 +95,49 @@ jobs:
       - name: Pull request を作成
         uses: actions/github-script@0.9.0
         with:
+          duplicate-pulls: ${{ steps.metadatas.outputs.duplicate-pulls }}
+          alt-base-branches: ${{ steps.metadatas.outputs.alt-base-branches }}
           script: |
-            github.pulls.create({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              title: '[Auto]データ更新 ${{ steps.metadatas.outputs.current-date }}',
-              head: '${{ steps.metadatas.outputs.head-branch }}',
+            const altBaseBranches = JSON.parse(core.getInput('alt-base-branches'))
+
+            const owner = context.payload.repository.owner.login
+            const repo = context.payload.repository.name
+            const title = '[Auto]データ更新 ${{ steps.metadatas.outputs.current-date }}'
+            const head = '${{ steps.metadatas.outputs.head-branch }}'
+            const baseBranches = ['${{ steps.metadatas.outputs.base-branch }}', ...altBaseBranches]
+
+            const { number: newPrNumber } = (await github.pulls.create({
+              owner,
+              repo,
+              title,
+              head,
               base: '${{ steps.metadatas.outputs.base-branch }}',
+            })).data
+
+            for await (branch of baseBranches) {
+              await github.pulls.create({
+                owner,
+                repo,
+                title,
+                head,
+                base: branch,
+              })
+            }
+
+            const duplicatePullNumbers = JSON.parse(core.getInput('duplicate-pulls', { required: true }))
+            duplicatePullNumbers.forEach(async pull => {
+              await octokit.pulls.update({
+                owner,
+                repo,
+                pull_number: pull,
+                state: 'closed',
+              })
+
+              await octokit.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull,
+                body: `Superseded by #${newPrNumber}.`,
+              })
             })
+
