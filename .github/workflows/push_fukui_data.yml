@@ -132,6 +132,7 @@ jobs:
         with:
           closed-pulls: ${{ steps.closed-pulls.outputs.number-with-branch }}
           alt-base-branches: ${{ steps.metadatas.outputs.alt-base-branches }}
+          github-token: ${{ secrets.PAT }}
           script: |
             const closedPulls = JSON.parse(core.getInput('closed-pulls'), { required: true })
             const altBaseBranches = JSON.parse(core.getInput('alt-base-branches'), { required: true })
